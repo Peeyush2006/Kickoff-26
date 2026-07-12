@@ -150,7 +150,7 @@ const VIEWS = (() => {
           </div>
           <form class="chat-input" id="chatForm">
             <label for="chatInput" class="sr-only">Ask a question</label>
-            <input id="chatInput" autocomplete="off" placeholder="Ask anything about match day…" />
+            <input id="chatInput" autocomplete="off" placeholder="Ask anything about match day…" required maxlength="250" />
             <button class="btn primary" type="submit">Send</button>
           </form>
         </div>
@@ -240,7 +240,7 @@ const VIEWS = (() => {
           <div class="card">
             <h2>✦ AI route planner</h2><p class="sub">Where do you want to go?</p>
             <div class="field"><label for="navFrom">From</label><select id="navFrom"><option>Gate A · North</option><option>Gate B · East</option><option>Gate C · South</option><option>Gate ACC · Accessible</option><option>Concourse 200</option></select></div>
-            <div class="field"><label for="navTo">Destination</label><input id="navTo" placeholder="e.g. Seat 118, nearest halal food, first aid" value="Section 118"/></div>
+            <div class="field"><label for="navTo">Destination</label><input id="navTo" placeholder="e.g. Seat 118, nearest halal food, first aid" value="Section 118" required maxlength="100"/></div>
             <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--txt-dim);margin-bottom:12px">
               <input type="checkbox" id="navStep"/>
               <label for="navStep">Step-free route only</label>
@@ -390,7 +390,7 @@ const VIEWS = (() => {
         <div style="display:flex;flex-direction:column;gap:16px">
           <div class="card">
             <h2>✦ Plan my journey home</h2><p class="sub">We factor in the post-match surge</p>
-            <div class="field"><label for="trTo">Destination</label><input id="trTo" placeholder="e.g. Downtown, Airport, Hotel district" value="Downtown"/></div>
+            <div class="field"><label for="trTo">Destination</label><input id="trTo" placeholder="e.g. Downtown, Airport, Hotel district" value="Downtown" required maxlength="100"/></div>
             <div class="field"><label for="trPri">Priority</label><select id="trPri"><option>Fastest</option><option>Least crowded</option><option>Greenest / lowest carbon</option><option>Wheelchair accessible</option></select></div>
             <button class="btn primary" id="trGo" style="width:100%">Generate journey plan</button>
           </div>
@@ -441,7 +441,7 @@ const VIEWS = (() => {
           </div>
           <div class="field">
             <label for="accNeed" class="sr-only">Describe accessibility needs</label>
-            <textarea id="accNeed" rows="2" placeholder="Or describe your needs in your own words…"></textarea>
+            <textarea id="accNeed" rows="2" placeholder="Or describe your needs in your own words…" maxlength="500"></textarea>
           </div>
           <button class="btn primary" id="accGo">Build my accessibility plan</button>
           <div id="accBody" style="margin-top:16px"></div>
@@ -527,7 +527,7 @@ const VIEWS = (() => {
         <div class="card">
           <h2>Generative AI engine</h2><p class="sub">Bring your own Anthropic API key for live Claude responses</p>
           <div class="field"><label for="apiKey">Anthropic API key</label>
-            <input id="apiKey" type="password" placeholder="sk-ant-…" value="${AI.getKey()?esc('••••••••••••'):''}"/>
+            <input id="apiKey" type="password" placeholder="sk-ant-…" value="${AI.getKey()?esc('••••••••••••'):''}" maxlength="100"/>
             <div class="hint">Stored only in this browser (localStorage). Calls go directly to Anthropic. Leave blank to use the on-device simulated assistant.</div></div>
           <div class="field"><label for="model">Model</label>
             <select id="model">

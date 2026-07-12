@@ -9,6 +9,10 @@
   };
 
   const $ = s => document.querySelector(s);
+  const esc = s => {
+    if (s === null || s === undefined) return '';
+    return String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+  };
   const viewEl = $('#view');
 
   /* ---- context passed to views ---- */
@@ -39,7 +43,7 @@
   /* ---- top bar ---- */
   function buildVenues(){
     const sel = $('#venueSel');
-    sel.innerHTML = DB.VENUES.map(v => `<option value="${v.id}">${v.name} · ${v.city}</option>`).join('');
+    sel.innerHTML = DB.VENUES.map(v => `<option value="${esc(v.id)}">${esc(v.name)} · ${esc(v.city)}</option>`).join('');
     sel.value = state.venue.id;
     sel.addEventListener('change', () => {
       state.venue = DB.VENUES.find(v => v.id === sel.value);
@@ -51,7 +55,7 @@
   }
   function buildLangs(){
     const sel = $('#langSel');
-    sel.innerHTML = I18N.LANGS.map(l => `<option value="${l.code}">${l.flag} ${l.name}</option>`).join('');
+    sel.innerHTML = I18N.LANGS.map(l => `<option value="${esc(l.code)}">${esc(l.flag)} ${esc(l.name)}</option>`).join('');
     sel.value = state.lang;
     document.documentElement.lang = state.lang;
     sel.addEventListener('change', () => {
@@ -63,7 +67,7 @@
   }
   function updateMatchChip(){
     const v = state.venue;
-    $('#matchChip').innerHTML = `⚽ <b>${v.match}</b> · KO ${v.ko} ${v.tz}`;
+    $('#matchChip').innerHTML = `⚽ <b>${esc(v.match)}</b> · KO ${esc(v.ko)} ${esc(v.tz)}`;
   }
 
   /* ---- AI status pill ---- */
