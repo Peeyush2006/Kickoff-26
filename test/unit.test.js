@@ -71,6 +71,47 @@ describe('Kickoff26 Unit Tests', () => {
       expect(res.text).toContain('Halal Grill');
       expect(res.live).toBe(false);
     });
+
+    test('should dynamically compute busiest gate in crowd briefing', async () => {
+      const state = { venue: DB.VENUES[0], lang: 'en' };
+      const originalGates = DB.GATES.map(g => ({ ...g }));
+      
+      DB.GATES.forEach(g => {
+        if (g.id === 'C') {
+          g.flow = 2000; g.cap = 1000; g.status = 'crit'; g.wait = 25;
+        } else {
+          g.flow = 100; g.cap = 1000; g.status = 'ok'; g.wait = 1;
+        }
+      });
+
+      const res = await AI.ask('give me a shift briefing', state);
+      expect(res.text).toContain('Gate C');
+      expect(res.text).toContain('25 min wait');
+
+      DB.GATES.forEach((g, i) => {
+        Object.assign(g, originalGates[i]);
+      });
+    });
+
+    test('should dynamically rank transport options based on load', async () => {
+      const state = { venue: DB.VENUES[0], lang: 'en' };
+      const originalTransport = DB.TRANSPORT.map(t => ({ ...t }));
+
+      DB.TRANSPORT.forEach(t => {
+        if (t.mode === 'Rideshare / Taxi') {
+          t.load = 0.05;
+        } else {
+          t.load = 0.99;
+        }
+      });
+
+      const res = await AI.ask('how can I get home?', state);
+      expect(res.text).toContain('Rideshare / Taxi');
+
+      DB.TRANSPORT.forEach((t, i) => {
+        Object.assign(t, originalTransport[i]);
+      });
+    });
   });
 
   describe('Live (live.js)', () => {

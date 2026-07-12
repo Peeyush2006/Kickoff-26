@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Kickoff'26 — GenAI Stadium Intelligence & Fan Experience Platform for FIFA World Cup 2026" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://api.anthropic.com; img-src 'self' data: https:; child-src 'none'; object-src 'none';" />
   <title>Kickoff'26 · Stadium Intelligence</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -69,14 +70,14 @@
         <button class="icon-btn hamb" id="hamb" aria-label="Toggle menu">☰</button>
         <div class="venue-select">
           <label for="venueSel" class="sr-only">Select Venue</label>
-          <span class="vs-ico">📍</span>
+          <span class="vs-ico" aria-hidden="true">📍</span>
           <select id="venueSel" aria-label="Select venue"></select>
         </div>
         <div class="topbar-spacer"></div>
         <div class="match-chip" id="matchChip" title="Next kickoff at this venue"></div>
         <div class="lang-wrap">
           <label for="langSel" class="sr-only">Select Language</label>
-          <span class="vs-ico">🌐</span>
+          <span class="vs-ico" aria-hidden="true">🌐</span>
           <select id="langSel" aria-label="Language"></select>
         </div>
         <div class="clock" id="clock">--:--</div>

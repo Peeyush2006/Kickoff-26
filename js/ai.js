@@ -98,19 +98,29 @@ const AI = (() => {
     const v = state.venue;
     switch(k){
       case 'briefing': {
+        const busiestGate = DB.GATES.reduce((max, g) => (g.flow / g.cap > max.flow / max.cap) ? g : max, DB.GATES[0]);
+        const calmestGate = DB.GATES.reduce((min, g) => (g.flow / g.cap < min.flow / min.cap) ? g : min, DB.GATES[0]);
+        const peakRiskText = busiestGate.status !== 'ok' 
+          ? `Gate ${busiestGate.id} (${busiestGate.name.split('·')[1].trim()}) is experiencing high ingress pressure (${Math.round(busiestGate.flow / busiestGate.cap * 100)}% flow, ${busiestGate.wait} min wait).` 
+          : `All entry gates are operating within normal limits.`;
         return `**Duty Manager Shift Briefing — ${v.name}**\n`
-          + `- **Top Risk:** Gate B (East) is experiencing high ingress pressure (${v.occ >= 0.9 ? '95%' : '111%'} flow, 14 min wait).\n`
+          + `- **Top Risk:** ${peakRiskText}\n`
           + `- **Crowd Status:** Stadium is at **${Math.round(v.occ*100)}%** occupancy and filling rapidly before kickoff.\n`
           + `- **Transport Outlook:** Blue Line is operating at peak frequency. Rideshare delays of ~25 mins projected at Lot 4 post-match.\n`
-          + `- **Proactive Action:** Open overflow lanes B2 and redirect incoming arrivals to Gate A (North) via in-app alerts.`;
+          + `- **Proactive Action:** Open overflow lanes ${busiestGate.id}2 and redirect incoming arrivals to ${calmestGate.name.split('·')[0].trim()} via in-app alerts.`;
       }
       case 'mitigation': {
-        return `**Crowd Mitigation Plan — Gate B Congestion**\n`
-          + `1. **Staff Action:** Activate overflow turnstiles B1-B2 immediately to increase throughput capacity.\n`
-          + `2. **Flow Redirection:** Station 4 roaming volunteers at the outer perimeter to direct fans to Gate A (North).\n`
+        const busiestGate = DB.GATES.reduce((max, g) => (g.flow / g.cap > max.flow / max.cap) ? g : max, DB.GATES[0]);
+        const calmestGate = DB.GATES.reduce((min, g) => (g.flow / g.cap < min.flow / min.cap) ? g : min, DB.GATES[0]);
+        const busiestName = busiestGate.name.split('·')[0].trim();
+        const calmestName = calmestGate.name.split('·')[0].trim();
+        const calmestDir = calmestGate.name.split('·')[1] ? calmestGate.name.split('·')[1].trim() : 'North';
+        return `**Crowd Mitigation Plan — ${busiestName} Congestion**\n`
+          + `1. **Staff Action:** Activate overflow turnstiles ${busiestGate.id}1-${busiestGate.id}2 immediately to increase throughput capacity.\n`
+          + `2. **Flow Redirection:** Station 4 roaming volunteers at the outer perimeter to direct fans to ${calmestGate.name}.\n`
           + `3. **Fan Broadcast:** Send push notification redirecting fans in transit.\n\n`
-          + `**Broadcast (EN):** "Gate B is busy. Head to Gate A (North) for fastest entry (under 5 min wait)!"\n`
-          + `**Broadcast (ES):** "¡La Puerta B está concurrida! Diríjase a la Puerta A (Norte) para ingresar más rápido."`;
+          + `**Broadcast (EN):** "${busiestName} is busy. Head to ${calmestName} for fastest entry (under ${calmestGate.wait} min wait)!"\n`
+          + `**Broadcast (ES):** "¡La ${busiestName.replace('Gate','Puerta')} está concurrida! Diríjase a la ${calmestName.replace('Gate','Puerta')} (${calmestDir === 'North' ? 'Norte' : calmestDir === 'South' ? 'Sur' : calmestDir === 'East' ? 'Este' : 'Oeste'}) para ingresar más rápido."`;
       }
       case 'susPlan': {
         return `**Ops Sustainability Action Plan — ${v.name}**\n`
@@ -119,8 +129,10 @@ const AI = (() => {
           + `3. **Hydration Campaign:** Nudge fans via mobile app to utilize water-refill stations to reduce single-use bottle sales.`;
       }
       case 'seat': {
+        const calmestGate = DB.GATES.reduce((min, g) => (g.flow / g.cap < min.flow / min.cap) ? g : min, DB.GATES[0]);
+        const gateName = calmestGate.name;
         return `Here's your **step-by-step route to Section 118** at ${v.name}:\n`
-          + `- Enter via **Gate A (North)** — currently ~6 min wait, the smoothest right now.\n`
+          + `- Enter via **${gateName}** — currently ~${calmestGate.wait} min wait, the smoothest right now.\n`
           + `- Take Concourse 100 clockwise ~90 m; escalators are on your right.\n`
           + `- Section 118 is on the **North Stand**, lower tier — restrooms and a water-refill point are 20 m away.\n\n`
           + `⏱️ Kickoff is at **${v.ko} ${v.tz}** — leaving now gives you ~10 min to spare. Want me to send this to your phone?`;
@@ -132,9 +144,10 @@ const AI = (() => {
           + `Prefer to avoid crowds? Concourse 200 stands are quieter until half-time.`;
       }
       case 'transport': {
-        const best = DB.TRANSPORT[0];
+        const best = DB.TRANSPORT.reduce((min, t) => (t.load < min.load) ? t : min, DB.TRANSPORT[0]);
+        const options = DB.TRANSPORT.map((t, i) => `${i+1}. ${t.ico} **${t.mode}** — ${t.line}, ${t.eta}, ~${t.co2} CO₂. ${t.note}`).join('\n');
         return `For getting home after **${v.match}**, here's my ranked advice:\n`
-          + DB.TRANSPORT.slice(0,3).map((t,i)=>`${i+1}. ${t.ico} **${t.mode}** — ${t.line}, ${t.eta}, ~${t.co2} CO₂. ${t.note}`).join('\n')
+          + options
           + `\n\n✅ I recommend the **${best.mode}** — lowest crowd risk and greenest option. `
           + `Rideshare will surge and Lot 4 pickup is modelled at ~25 min delay post-match.`;
       }
@@ -148,10 +161,20 @@ const AI = (() => {
       }
       case 'crowd': {
         const busy = DB.GATES.filter(g=>g.status!=='ok').map(g=>g.name);
-        return `Right now **Gate B (East)** is the busiest (~14 min, over capacity). `
-          + `Calmest entries: **Gate C (South)** ~3 min and **Gate A (North)** ~6 min.\n\n`
+        const busiestGate = DB.GATES.reduce((max, g) => (g.flow / g.cap > max.flow / max.cap) ? g : max, DB.GATES[0]);
+        const calmestGate = DB.GATES.reduce((min, g) => (g.flow / g.cap < min.flow / min.cap) ? g : min, DB.GATES[0]);
+        
+        let report = '';
+        if (busiestGate.status !== 'ok') {
+          report = `Right now **${busiestGate.name}** is the busiest (~${busiestGate.wait} min wait, ${Math.round(busiestGate.flow/busiestGate.cap*100)}% of capacity). `;
+        } else {
+          report = `All gates are flowing smoothly. **${busiestGate.name}** is the busiest but has only a ~${busiestGate.wait} min wait. `;
+        }
+        report += `Calmest entry: **${calmestGate.name}** (~${calmestGate.wait} min wait).\n\n`;
+        
+        return report
           + `📈 Venue is at **${Math.round(v.occ*100)}%** occupancy and filling fast before ${v.ko}. `
-          + `Best window to enter smoothly is **within the next 15 minutes**${busy.length?` — avoid ${busy.join(' and ')}.`:'.'}`;
+          + `Best window to enter smoothly is **within the next 15 minutes**${busy.length?` — avoid ${busy.map(n=>n.split('·')[0].trim()).join(' and ')}.`:'.'}`;
       }
       case 'sustain': {
         return `Kickoff'26 is targeting a low-waste match day 🌱:\n`

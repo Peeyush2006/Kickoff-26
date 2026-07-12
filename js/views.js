@@ -5,7 +5,14 @@
 const VIEWS = (() => {
 
   /* ---------- shared helpers ---------- */
-  const esc = s => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+  const esc = s => {
+    if (s === null || s === undefined) return '';
+    return String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+  };
+  const sanitizeInput = s => {
+    if (s === null || s === undefined) return '';
+    return String(s).replace(/[<>]/g, '');
+  };
   const pct = n => Math.round(n*100);
 
   function sparkline(data, w=180, h=36, color='var(--brand)'){
@@ -113,12 +120,12 @@ const VIEWS = (() => {
     }};
   }
   function kpi(lbl,val,delta,dir,ico,spark){
-    return `<div class="card kpi"><div class="kpi-top"><span class="lbl">${lbl}</span><span class="ico">${ico}</span></div>
+    return `<div class="card kpi"><div class="kpi-top"><span class="lbl">${lbl}</span><span class="ico" aria-hidden="true">${ico}</span></div>
       <div class="val">${val}</div><div class="delta ${dir}">${dir==='up'?'▲':'▼'} ${delta}</div>
       ${sparkline(spark,180,30)}</div>`;
   }
   function alertRow(a){
-    return `<div class="alert ${a.sev}"><div class="a-ico">${a.ico}</div><div class="a-body">
+    return `<div class="alert ${a.sev}"><div class="a-ico" aria-hidden="true">${a.ico}</div><div class="a-body">
       <div class="a-title">${esc(a.title)} <span class="tag-pill" style="margin-left:4px">${a.ts}</span></div>
       <div class="a-desc">${esc(a.desc)}</div>
       <div class="a-rec"><b>AI recommends:</b> ${esc(a.rec)}</div></div></div>`;
@@ -151,10 +158,10 @@ const VIEWS = (() => {
           <div class="card">
             <h2>Grounded on live data</h2><p class="sub">The assistant reasons over ↓</p>
             <div class="list">
-              <div class="row"><div class="r-ico">🏟️</div><div class="r-main"><div class="r-title">${esc(state.venue.name)}</div><div class="r-sub">${esc(state.venue.match)} · ${esc(state.venue.ko)} ${esc(state.venue.tz)}</div></div></div>
-              <div class="row"><div class="r-ico">👥</div><div class="r-main"><div class="r-title">${pct(state.venue.occ)}% occupancy</div><div class="r-sub">6 gates · live wait times</div></div></div>
-              <div class="row"><div class="r-ico">🚈</div><div class="r-main"><div class="r-title">5 transport modes</div><div class="r-sub">load & CO₂ per option</div></div></div>
-              <div class="row"><div class="r-ico">♿</div><div class="r-main"><div class="r-title">Accessibility map</div><div class="r-sub">step-free, sensory, audio</div></div></div>
+              <div class="row"><div class="r-ico" aria-hidden="true">🏟️</div><div class="r-main"><div class="r-title">${esc(state.venue.name)}</div><div class="r-sub">${esc(state.venue.match)} · ${esc(state.venue.ko)} ${esc(state.venue.tz)}</div></div></div>
+              <div class="row"><div class="r-ico" aria-hidden="true">👥</div><div class="r-main"><div class="r-title">${pct(state.venue.occ)}% occupancy</div><div class="r-sub">6 gates · live wait times</div></div></div>
+              <div class="row"><div class="r-ico" aria-hidden="true">🚈</div><div class="r-main"><div class="r-title">5 transport modes</div><div class="r-sub">load & CO₂ per option</div></div></div>
+              <div class="row"><div class="r-ico" aria-hidden="true">♿</div><div class="r-main"><div class="r-title">Accessibility map</div><div class="r-sub">step-free, sensory, audio</div></div></div>
             </div>
           </div>
           <div class="card" style="font-size:12.5px;color:var(--txt-dim)">
@@ -170,7 +177,7 @@ const VIEWS = (() => {
       root.querySelectorAll('#suggest .chip').forEach(c=>c.addEventListener('click',()=>{ input.value=c.textContent; root.querySelector('#chatForm').requestSubmit(); }));
       root.querySelector('#chatForm').addEventListener('submit', async e=>{
         e.preventDefault();
-        const q=input.value.trim(); if(!q) return;
+        const q=sanitizeInput(input.value.trim()); if(!q) return;
         input.value='';
         pushMsg(log,'me',esc(q));
         const th=pushMsg(log,'ai',typing());
@@ -214,7 +221,12 @@ const VIEWS = (() => {
         <div class="card">
           <div style="display:flex;justify-content:space-between;align-items:center">
             <h2>Interactive stadium map</h2>
-            <div class="seg" id="mapSeg"><button class="on" data-f="all">All</button><button data-f="food">🌮</button><button data-f="restroom">🚻</button><button data-f="access">♿</button></div>
+            <div class="seg" id="mapSeg">
+              <button class="on" data-f="all" aria-label="Show all amenities">All</button>
+              <button data-f="food" aria-label="Filter by food stands">🌮</button>
+              <button data-f="restroom" aria-label="Filter by restrooms">🚻</button>
+              <button data-f="access" aria-label="Filter by accessibility facilities">♿</button>
+            </div>
           </div>
           <p class="sub">Tap a stand for details · markers show key amenities</p>
           <div class="stadium" id="stadium"><div class="pitch"></div></div>
@@ -269,7 +281,7 @@ const VIEWS = (() => {
         root.querySelectorAll('#mapSeg button').forEach(x=>x.classList.remove('on')); b.classList.add('on'); paintZones(b.dataset.f);
       }));
       root.querySelector('#navGo').addEventListener('click', async ()=>{
-        const from=root.querySelector('#navFrom').value, to=root.querySelector('#navTo').value.trim()||'your seat';
+        const from=root.querySelector('#navFrom').value, to=sanitizeInput(root.querySelector('#navTo').value.trim())||'your seat';
         const step=root.querySelector('#navStep').checked;
         const card=root.querySelector('#routeCard'), body=root.querySelector('#routeBody');
         card.style.display=''; body.innerHTML=`<div style="padding:8px 0">${typing()}</div>`;
@@ -357,7 +369,7 @@ const VIEWS = (() => {
       <td style="width:120px"><div class="progress ${tone}"><i style="width:${Math.min(100,pct(load))}%"></i></div></td>
       <td><span class="badge ${g.status}"><span class="d"></span>${g.status==='ok'?'Clear':g.status==='warn'?'Busy':'Critical'}</span></td></tr>`;
   }
-  function miniStat(l,v,i){ return `<div class="card kpi"><div class="kpi-top"><span class="lbl">${l}</span><span class="ico">${i}</span></div><div class="val">${v}</div></div>`; }
+  function miniStat(l,v,i){ return `<div class="card kpi"><div class="kpi-top"><span class="lbl">${l}</span><span class="ico" aria-hidden="true">${i}</span></div><div class="val">${v}</div></div>`; }
 
   /* =========================================================
      TRANSPORT
@@ -387,7 +399,7 @@ const VIEWS = (() => {
       </div>`;
     return { html, mount(root, ctx){
       root.querySelector('#trGo').addEventListener('click', async ()=>{
-        const to=root.querySelector('#trTo').value.trim()||'downtown', pri=root.querySelector('#trPri').value;
+        const to=sanitizeInput(root.querySelector('#trTo').value.trim())||'downtown', pri=root.querySelector('#trPri').value;
         const card=root.querySelector('#trCard'), body=root.querySelector('#trBody');
         card.style.display=''; body.innerHTML=`<div style="padding:8px 0">${typing()}</div>`;
         const r=await AI.generate(`After ${v.match} at ${v.name}, plan the best journey to "${to}" optimising for: ${pri}. Account for post-match crowds and surge pricing. Give 3-4 steps with times and a carbon note.`, state);
@@ -396,7 +408,7 @@ const VIEWS = (() => {
     }};
   }
   function transRow(t){
-    return `<div class="row"><div class="r-ico">${t.ico}</div><div class="r-main">
+    return `<div class="row"><div class="r-ico" aria-hidden="true">${t.ico}</div><div class="r-main">
       <div class="r-title">${esc(t.mode)} <span class="tag-pill">${t.co2} CO₂</span></div>
       <div class="r-sub">${esc(t.line)} · ${esc(t.eta)} · ${esc(t.note)}</div>
       <div class="progress ${loadTone(t.load)}" style="margin-top:7px"><i style="width:${pct(t.load)}%"></i></div>
@@ -437,8 +449,8 @@ const VIEWS = (() => {
         <div class="card">
           <h2>Request a volunteer</h2><p class="sub">A trained mobility volunteer can meet you</p>
           <div class="list">
-            <div class="row"><div class="r-ico">📍</div><div class="r-main"><div class="r-title">Meet at Gate ACC</div><div class="r-sub">Avg response ~4 min</div></div></div>
-            <div class="row"><div class="r-ico">🧑‍🦽</div><div class="r-main"><div class="r-title">2 volunteers roaming</div><div class="r-sub">SW concourse now</div></div></div>
+            <div class="row"><div class="r-ico" aria-hidden="true">📍</div><div class="r-main"><div class="r-title">Meet at Gate ACC</div><div class="r-sub">Avg response ~4 min</div></div></div>
+            <div class="row"><div class="r-ico" aria-hidden="true">🧑‍🦽</div><div class="r-main"><div class="r-title">2 volunteers roaming</div><div class="r-sub">SW concourse now</div></div></div>
           </div>
           <button class="btn" id="volBtn" style="width:100%;margin-top:12px">🔔 Request assistance</button>
         </div>
@@ -447,16 +459,16 @@ const VIEWS = (() => {
       const ta=root.querySelector('#accNeed');
       root.querySelectorAll('#needChips .chip').forEach(c=>c.addEventListener('click',()=>{ ta.value=(ta.value?ta.value+', ':'')+c.dataset.n; }));
       root.querySelector('#accGo').addEventListener('click', async ()=>{
-        const need=ta.value.trim()||'a wheelchair user attending with family';
+        const need=sanitizeInput(ta.value.trim())||'a wheelchair user attending with family';
         const box=root.querySelector('#accBody'); box.innerHTML=typing();
         const r=await AI.ask(`I need an accessibility plan. My needs: ${need}. Give specific step-free routing, best gate, relevant facilities and any sensory/support services, warmly.`, state);
-        box.innerHTML=`<div class="alert ok"><div class="a-ico">✅</div><div class="a-body">${fmt(r.text)}</div></div>`;
+        box.innerHTML=`<div class="alert ok"><div class="a-ico" aria-hidden="true">✅</div><div class="a-body">${fmt(r.text)}</div></div>`;
         ctx.toast('Accessibility plan ready'+(r.live?' (live AI)':''));
       });
       root.querySelector('#volBtn').addEventListener('click',()=>ctx.toast('🔔 Volunteer notified — meet at Gate ACC (~4 min).'));
     }};
   }
-  function accCard(i,t,s,f){ return `<div class="card"><div style="font-size:24px;margin-bottom:8px">${i}</div><h2>${t}</h2><p class="sub" style="margin-bottom:8px">${s}</p><span class="badge ok"><span class="d"></span>${f}</span></div>`; }
+  function accCard(i,t,s,f){ return `<div class="card"><div style="font-size:24px;margin-bottom:8px" aria-hidden="true">${i}</div><h2>${t}</h2><p class="sub" style="margin-bottom:8px">${s}</p><span class="badge ok"><span class="d"></span>${f}</span></div>`; }
 
   /* =========================================================
      SUSTAINABILITY
@@ -470,7 +482,7 @@ const VIEWS = (() => {
         <p>Track the tournament's environmental footprint and let AI surface the highest-impact actions in real time.</p>
       </div>
       <div class="grid g-4" style="margin-bottom:16px">
-        ${s.stats.map(st=>`<div class="card"><div class="kpi-top"><span class="lbl">${st.label}</span><span class="ico">${st.ico}</span></div>
+        ${s.stats.map(st=>`<div class="card"><div class="kpi-top"><span class="lbl">${st.label}</span><span class="ico" aria-hidden="true">${st.ico}</span></div>
           <div class="val" style="font-size:26px">${st.val}</div>
           <div class="progress ${st.tone}" style="margin:8px 0 6px"><i style="width:${st.p}%"></i></div>
           <div class="delta" style="color:var(--txt-mut)">Target ${st.target}</div></div>`).join('')}
@@ -478,7 +490,7 @@ const VIEWS = (() => {
       <div class="grid g-main">
         <div class="card">
           <h2>✦ AI impact recommendations</h2><p class="sub">Highest-leverage actions for this match</p>
-          <div class="list" id="susList">${s.tips.map(t=>`<div class="row"><div class="r-ico">🌱</div><div class="r-main"><div class="r-title" style="font-weight:500;white-space:normal">${esc(t)}</div></div></div>`).join('')}</div>
+          <div class="list" id="susList">${s.tips.map(t=>`<div class="row"><div class="r-ico" aria-hidden="true">🌱</div><div class="r-main"><div class="r-title" style="font-weight:500;white-space:normal">${esc(t)}</div></div></div>`).join('')}</div>
           <button class="btn primary sm" id="susBtn" style="margin-top:14px">Generate today's action plan</button>
           <div id="susBody" style="margin-top:14px"></div>
         </div>
@@ -533,9 +545,9 @@ const VIEWS = (() => {
           <h2>About Kickoff'26</h2>
           <p class="sub" style="margin-bottom:14px">GenAI Stadium Intelligence for the FIFA World Cup 2026</p>
           <div class="list">
-            <div class="row"><div class="r-ico">✦</div><div class="r-main"><div class="r-title">Generative AI everywhere</div><div class="r-sub">Concierge, routing, briefings, broadcasts & sustainability plans</div></div></div>
-            <div class="row"><div class="r-ico">🌐</div><div class="r-main"><div class="r-title">8 languages</div><div class="r-sub">Multilingual fan & volunteer assistance</div></div></div>
-            <div class="row"><div class="r-ico">🔒</div><div class="r-main"><div class="r-title">Privacy-first</div><div class="r-sub">Key stays local · demo data only</div></div></div>
+            <div class="row"><div class="r-ico" aria-hidden="true">✦</div><div class="r-main"><div class="r-title">Generative AI everywhere</div><div class="r-sub">Concierge, routing, briefings, broadcasts & sustainability plans</div></div></div>
+            <div class="row"><div class="r-ico" aria-hidden="true">🌐</div><div class="r-main"><div class="r-title">8 languages</div><div class="r-sub">Multilingual fan & volunteer assistance</div></div></div>
+            <div class="row"><div class="r-ico" aria-hidden="true">🔒</div><div class="r-main"><div class="r-title">Privacy-first</div><div class="r-sub">Key stays local · demo data only</div></div></div>
           </div>
           <p class="foot-note" style="margin-top:16px">Prototype · not affiliated with or endorsed by FIFA. All venue data is illustrative.</p>
         </div>
@@ -543,7 +555,13 @@ const VIEWS = (() => {
     return { html, mount(root, ctx){
       root.querySelector('#saveKey').addEventListener('click',()=>{
         const k=root.querySelector('#apiKey').value.trim();
-        if(k && !k.startsWith('•')) AI.setKey(k);
+        if(k && !k.startsWith('•')) {
+          if (!k.startsWith('sk-ant-') || k.length < 40) {
+            ctx.toast('❌ Invalid key. Must start with sk-ant-');
+            return;
+          }
+          AI.setKey(k);
+        }
         AI.setModel(root.querySelector('#model').value);
         ctx.refreshAIStatus(); ctx.toast(AI.isLive()?'✅ Live AI connected':'Saved');
         ctx.go('settings');

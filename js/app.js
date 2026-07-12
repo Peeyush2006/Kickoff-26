@@ -33,7 +33,7 @@
     if (typeof Anim !== 'undefined') Anim.animateView(viewEl);
     closeSidebar();
     // reflect rtl for arabic in concierge
-    document.documentElement.dir = (state.lang === 'ar' && name === 'concierge') ? 'rtl' : 'ltr';
+    document.documentElement.dir = (I18N.langMeta(state.lang).rtl && name === 'concierge') ? 'rtl' : 'ltr';
   }
 
   /* ---- top bar ---- */
@@ -53,8 +53,10 @@
     const sel = $('#langSel');
     sel.innerHTML = I18N.LANGS.map(l => `<option value="${l.code}">${l.flag} ${l.name}</option>`).join('');
     sel.value = state.lang;
+    document.documentElement.lang = state.lang;
     sel.addEventListener('change', () => {
       state.lang = sel.value;
+      document.documentElement.lang = state.lang;
       go(state.view);
       toast(`Language: ${I18N.langMeta(state.lang).name}`);
     });

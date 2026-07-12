@@ -10,7 +10,7 @@
   --stroke: #263449;
   --txt: #e8eef7;
   --txt-dim: #9fb0c6;
-  --txt-mut: #6b7c94;
+  --txt-mut: #8496ab;
 
   /* WC26 host-nation inspired palette */
   --brand: #12d6a0;      /* pitch teal-green */
@@ -34,11 +34,15 @@
 }
 [data-theme="light"] {
   --bg:#eef2f7; --bg-2:#e6ebf2; --panel:#ffffff; --panel-2:#f4f7fb;
-  --stroke:#d7dfea; --txt:#0f1a2b; --txt-dim:#48566b; --txt-mut:#7688a0;
+  --stroke:#d7dfea; --txt:#0f1a2b; --txt-dim:#48566b; --txt-mut:#55667d;
   --shadow:0 10px 40px -18px rgba(20,40,80,.25);
 }
 
 * { box-sizing: border-box; }
+*:focus-visible {
+  outline: 2.5px solid var(--brand);
+  outline-offset: 2.5px;
+}
 html, body { height: 100%; }
 body {
   margin: 0;
