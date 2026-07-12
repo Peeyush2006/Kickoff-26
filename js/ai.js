@@ -7,11 +7,11 @@
      from the domain data so every feature is fully demoable offline.
    The same context is passed to both, so behaviour is consistent.
    ============================================================ */
-if (typeof DB === 'undefined' && typeof require !== 'undefined') {
-  var DB = require('./data.js');
+if (typeof globalThis.DB === 'undefined' && typeof require !== 'undefined') {
+  globalThis.DB = require('./data.js');
 }
-if (typeof I18N === 'undefined' && typeof require !== 'undefined') {
-  var I18N = require('./i18n.js');
+if (typeof globalThis.I18N === 'undefined' && typeof require !== 'undefined') {
+  globalThis.I18N = require('./i18n.js');
 }
 
 const AI = (() => {

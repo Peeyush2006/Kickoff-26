@@ -4,8 +4,8 @@
    gate flow rate jitters, occupancy climbs toward capacity.
    Views subscribe; app clears subscribers on navigation.
    ============================================================ */
-if (typeof DB === 'undefined' && typeof require !== 'undefined') {
-  var DB = require('./data.js');
+if (typeof globalThis.DB === 'undefined' && typeof require !== 'undefined') {
+  globalThis.DB = require('./data.js');
 }
 
 const Live = (() => {
