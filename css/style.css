@@ -36,6 +36,14 @@
   --bg:#eef2f7; --bg-2:#e6ebf2; --panel:#ffffff; --panel-2:#f4f7fb;
   --stroke:#d7dfea; --txt:#0f1a2b; --txt-dim:#48566b; --txt-mut:#55667d;
   --shadow:0 10px 40px -18px rgba(20,40,80,.25);
+  --brand:#0b8462;
+  --brand-2:#10aa7e;
+  --ok:#159a61;
+  --warn:#905d00;
+  --crit:#c51b36;
+}
+[data-theme="light"] .btn.primary {
+  color: #ffffff;
 }
 
 * { box-sizing: border-box; }
