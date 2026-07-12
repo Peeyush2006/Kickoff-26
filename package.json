@@ -1,0 +1,12 @@
+{
+  "name": "kickoff26",
+  "version": "1.0.0",
+  "description": "Kickoff'26 — GenAI Stadium Intelligence Platform",
+  "main": "js/app.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}

@@ -34,6 +34,24 @@ const VIEWS = (() => {
         <p>Real-time decision support for organizers and venue staff. AI continuously ranks risks across entry, safety, transport and sustainability.</p>
       </div>
 
+      <div class="live-strip card">
+        <div class="ls-pulse"><span></span></div>
+        <div class="ls-block">
+          <div class="ls-lbl">Fans inside now · live</div>
+          <div class="ls-num" id="liveInside">—</div>
+        </div>
+        <div class="ls-sep"></div>
+        <div class="ls-block">
+          <div class="ls-lbl">Entering / min</div>
+          <div class="ls-num sm" id="liveRate">—</div>
+        </div>
+        <div class="ls-sep"></div>
+        <div class="ls-block grow">
+          <div class="ls-lbl">Capacity · <span id="liveOccTxt">—</span></div>
+          <div class="progress" style="margin-top:9px"><i id="liveOccBar" style="width:0%"></i></div>
+        </div>
+      </div>
+
       <div class="grid g-4" style="margin-bottom:16px">
         ${kpi('Live occupancy', pct(v.occ)+'%', '+4.2%', 'up', '👥', DB.CROWD_HISTORY)}
         ${kpi('Avg gate wait', '7.2 min', '-1.1 min', 'up', '⏱️', [11,10,9,9,8,8,7,7,8,7,7,7])}
@@ -44,7 +62,7 @@ const VIEWS = (() => {
       <div class="grid g-main">
         <div class="card">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-            <div><h3>AI-prioritised operations feed</h3><p class="sub">Ranked by predicted impact · updated continuously</p></div>
+            <div><h2>AI-prioritised operations feed</h2><p class="sub">Ranked by predicted impact · updated continuously</p></div>
             <span class="badge crit"><span class="d"></span>${critCount} needs action</span>
           </div>
           <div class="list" id="alertList">
@@ -54,13 +72,13 @@ const VIEWS = (() => {
 
         <div style="display:flex;flex-direction:column;gap:16px">
           <div class="card">
-            <h3>Crowd trend</h3><p class="sub">% capacity · last 60 min</p>
+            <h2>Crowd trend</h2><p class="sub">% capacity · last 60 min</p>
             ${sparkline(DB.CROWD_HISTORY, 300, 70)}
             <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--txt-mut);margin-top:6px">
               <span>60m ago</span><span>Kickoff ${esc(v.ko)}</span></div>
           </div>
           <div class="card">
-            <h3>AI shift briefing</h3><p class="sub">One-tap summary for the duty manager</p>
+            <h2>AI shift briefing</h2><p class="sub">One-tap summary for the duty manager</p>
             <div id="briefBox" style="font-size:13.5px;color:var(--txt-dim);line-height:1.6;min-height:60px">
               Generate an AI-written briefing that fuses every live signal into a 20-second read.</div>
             <button class="btn primary sm" id="briefBtn" style="margin-top:12px">✦ Generate briefing</button>
@@ -68,6 +86,22 @@ const VIEWS = (() => {
         </div>
       </div>`;
     return { html, mount(root, ctx){
+      // live ticker
+      const inN=root.querySelector('#liveInside'), rateN=root.querySelector('#liveRate'),
+            occT=root.querySelector('#liveOccTxt'), occB=root.querySelector('#liveOccBar'),
+            occKpi=root.querySelector('.kpi .val');
+      let prevInside=null;
+      const unsub=ctx.live.register(s=>{
+        inN.textContent=s.inside.toLocaleString();
+        rateN.textContent='+'+s.ratePerMin.toLocaleString();
+        occT.textContent=pct(s.occ)+'%';
+        occB.style.width=pct(s.occ)+'%';
+        occB.parentElement.className='progress '+(s.occ>=0.9?'crit':s.occ>=0.75?'warn':'');
+        if(occKpi) occKpi.textContent=pct(s.occ)+'%';
+        if(prevInside!==null && s.inside>prevInside){ inN.classList.remove('flash'); void inN.offsetWidth; inN.classList.add('flash'); }
+        prevInside=s.inside;
+      });
+      ctx.onLeave(unsub);
       root.querySelector('#briefBtn').addEventListener('click', async e=>{
         const box=root.querySelector('#briefBox'); const btn=e.currentTarget;
         btn.disabled=true; box.innerHTML=typing();
@@ -108,13 +142,14 @@ const VIEWS = (() => {
             ${t.prompts.map(p=>`<button class="chip">${esc(p)}</button>`).join('')}
           </div>
           <form class="chat-input" id="chatForm">
+            <label for="chatInput" class="sr-only">Ask a question</label>
             <input id="chatInput" autocomplete="off" placeholder="Ask anything about match day…" />
             <button class="btn primary" type="submit">Send</button>
           </form>
         </div>
         <div style="display:flex;flex-direction:column;gap:16px">
           <div class="card">
-            <h3>Grounded on live data</h3><p class="sub">The assistant reasons over ↓</p>
+            <h2>Grounded on live data</h2><p class="sub">The assistant reasons over ↓</p>
             <div class="list">
               <div class="row"><div class="r-ico">🏟️</div><div class="r-main"><div class="r-title">${esc(state.venue.name)}</div><div class="r-sub">${esc(state.venue.match)} · ${esc(state.venue.ko)} ${esc(state.venue.tz)}</div></div></div>
               <div class="row"><div class="r-ico">👥</div><div class="r-main"><div class="r-title">${pct(state.venue.occ)}% occupancy</div><div class="r-sub">6 gates · live wait times</div></div></div>
@@ -123,7 +158,7 @@ const VIEWS = (() => {
             </div>
           </div>
           <div class="card" style="font-size:12.5px;color:var(--txt-dim)">
-            <h3>🌐 ${I18N.langMeta(state.lang).flag} ${I18N.langMeta(state.lang).name}</h3>
+            <h2>🌐 ${I18N.langMeta(state.lang).flag} ${I18N.langMeta(state.lang).name}</h2>
             <p class="sub" style="margin:0">Switch language in the top bar — the concierge replies in kind, ideal for international fans and volunteers.</p>
           </div>
         </div>
@@ -178,7 +213,7 @@ const VIEWS = (() => {
       <div class="grid g-main">
         <div class="card">
           <div style="display:flex;justify-content:space-between;align-items:center">
-            <h3>Interactive stadium map</h3>
+            <h2>Interactive stadium map</h2>
             <div class="seg" id="mapSeg"><button class="on" data-f="all">All</button><button data-f="food">🌮</button><button data-f="restroom">🚻</button><button data-f="access">♿</button></div>
           </div>
           <p class="sub">Tap a stand for details · markers show key amenities</p>
@@ -191,13 +226,16 @@ const VIEWS = (() => {
         </div>
         <div style="display:flex;flex-direction:column;gap:16px">
           <div class="card">
-            <h3>✦ AI route planner</h3><p class="sub">Where do you want to go?</p>
-            <div class="field"><label>From</label><select id="navFrom"><option>Gate A · North</option><option>Gate B · East</option><option>Gate C · South</option><option>Gate ACC · Accessible</option><option>Concourse 200</option></select></div>
-            <div class="field"><label>Destination</label><input id="navTo" placeholder="e.g. Seat 118, nearest halal food, first aid" value="Section 118"/></div>
-            <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--txt-dim);margin-bottom:12px"><input type="checkbox" id="navStep"/> Step-free route only</label>
+            <h2>✦ AI route planner</h2><p class="sub">Where do you want to go?</p>
+            <div class="field"><label for="navFrom">From</label><select id="navFrom"><option>Gate A · North</option><option>Gate B · East</option><option>Gate C · South</option><option>Gate ACC · Accessible</option><option>Concourse 200</option></select></div>
+            <div class="field"><label for="navTo">Destination</label><input id="navTo" placeholder="e.g. Seat 118, nearest halal food, first aid" value="Section 118"/></div>
+            <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--txt-dim);margin-bottom:12px">
+              <input type="checkbox" id="navStep"/>
+              <label for="navStep">Step-free route only</label>
+            </div>
             <button class="btn primary" id="navGo" style="width:100%">Plan my route</button>
           </div>
-          <div class="card" id="routeCard" style="display:none"><h3>Your route</h3><div id="routeBody"></div></div>
+          <div class="card" id="routeCard" style="display:none"><h2>Your route</h2><div id="routeBody"></div></div>
         </div>
       </div>`;
     return { html, mount(root, ctx){
@@ -266,14 +304,26 @@ const VIEWS = (() => {
         ${miniStat('Entering / min', '2,910', '📈')}
         ${miniStat('Predicted full', 'in ~24 min', '⏳')}
       </div>
+      <div class="card" style="margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div><h2>Live gate flow</h2><p class="sub">Each dot is a fan entering · lanes slow & queue when a gate is congested</p></div>
+          <span class="badge ok"><span class="d"></span>Streaming</span>
+        </div>
+        <canvas id="gateCanvas" style="width:100%;height:240px;display:block;margin-top:8px"></canvas>
+        <div class="legend">
+          <span><i style="background:var(--ok)"></i> Clear flow</span>
+          <span><i style="background:var(--warn)"></i> Busy</span>
+          <span><i style="background:var(--crit)"></i> Congested / queueing</span>
+        </div>
+      </div>
       <div class="grid g-main">
         <div class="card">
-          <h3>Gate throughput</h3><p class="sub">Flow vs capacity · wait time · AI status</p>
+          <h2>Gate throughput</h2><p class="sub">Flow vs capacity · wait time · AI status</p>
           <table class="table"><thead><tr><th>Gate</th><th>Flow / cap</th><th>Wait</th><th>Load</th><th></th></tr></thead>
-          <tbody>${DB.GATES.map(gateRow).join('')}</tbody></table>
+          <tbody id="gateTableBody">${DB.GATES.map(gateRow).join('')}</tbody></table>
         </div>
         <div class="card">
-          <h3>✦ AI crowd action</h3><p class="sub">Recommended intervention</p>
+          <h2>✦ AI crowd action</h2><p class="sub">Recommended intervention</p>
           <div class="alert crit" style="margin-bottom:12px"><div class="a-ico">🚨</div><div class="a-body">
             <div class="a-title">Gate B over capacity</div>
             <div class="a-desc">111% flow, 14-min wait, 38 min to kickoff.</div></div></div>
@@ -282,6 +332,18 @@ const VIEWS = (() => {
         </div>
       </div>`;
     return { html, mount(root, ctx){
+      // live gate-flow particle sim
+      const canvas=root.querySelector('#gateCanvas');
+      if(canvas && typeof GateFlow !== 'undefined'){ const stop=GateFlow.init(canvas, DB.GATES); ctx.onLeave(stop); }
+      // live stats
+      const vals=root.querySelectorAll('.kpi .val');
+      const tableBody = root.querySelector('#gateTableBody');
+      const unsub=ctx.live.register(s=>{
+        if(vals[0]) vals[0].textContent=s.inside.toLocaleString();
+        if(vals[1]) vals[1].textContent=s.ratePerMin.toLocaleString();
+        if(tableBody) tableBody.innerHTML = DB.GATES.map(gateRow).join('');
+      });
+      ctx.onLeave(unsub);
       root.querySelector('#crowdBtn').addEventListener('click', async e=>{
         const box=root.querySelector('#crowdRec'); e.currentTarget.disabled=true; box.innerHTML=typing();
         const r=await AI.generate(`Gate B at ${v.name} is at 111% capacity with a 14-min wait, kickoff in 38 min. Give a 3-step crowd-balancing plan for staff, then write a short friendly fan push-notification (English + Spanish) redirecting some fans to Gate A.`, state);
@@ -310,17 +372,17 @@ const VIEWS = (() => {
       </div>
       <div class="grid g-2">
         <div class="card">
-          <h3>Options right now</h3><p class="sub">Ranked by AI for comfort + sustainability</p>
+          <h2>Options right now</h2><p class="sub">Ranked by AI for comfort + sustainability</p>
           <div class="list">${DB.TRANSPORT.map(transRow).join('')}</div>
         </div>
         <div style="display:flex;flex-direction:column;gap:16px">
           <div class="card">
-            <h3>✦ Plan my journey home</h3><p class="sub">We factor in the post-match surge</p>
-            <div class="field"><label>Destination</label><input id="trTo" placeholder="e.g. Downtown, Airport, Hotel district" value="Downtown"/></div>
-            <div class="field"><label>Priority</label><select id="trPri"><option>Fastest</option><option>Least crowded</option><option>Greenest / lowest carbon</option><option>Wheelchair accessible</option></select></div>
+            <h2>✦ Plan my journey home</h2><p class="sub">We factor in the post-match surge</p>
+            <div class="field"><label for="trTo">Destination</label><input id="trTo" placeholder="e.g. Downtown, Airport, Hotel district" value="Downtown"/></div>
+            <div class="field"><label for="trPri">Priority</label><select id="trPri"><option>Fastest</option><option>Least crowded</option><option>Greenest / lowest carbon</option><option>Wheelchair accessible</option></select></div>
             <button class="btn primary" id="trGo" style="width:100%">Generate journey plan</button>
           </div>
-          <div class="card" id="trCard" style="display:none"><h3>Your journey</h3><div id="trBody"></div></div>
+          <div class="card" id="trCard" style="display:none"><h2>Your journey</h2><div id="trBody"></div></div>
         </div>
       </div>`;
     return { html, mount(root, ctx){
@@ -361,16 +423,19 @@ const VIEWS = (() => {
       </div>
       <div class="grid g-main">
         <div class="card">
-          <h3>✦ Personalised assistance</h3><p class="sub">Tell us your needs — we'll tailor a plan and can alert a volunteer</p>
+          <h2>✦ Personalised assistance</h2><p class="sub">Tell us your needs — we'll tailor a plan and can alert a volunteer</p>
           <div class="chip-row" id="needChips" style="margin-bottom:14px">
             ${['Wheelchair user','Low vision','Deaf / hard of hearing','Autism / sensory','Ambulatory difficulty','Travelling with a child'].map(n=>`<button class="chip" data-n="${n}">${n}</button>`).join('')}
           </div>
-          <div class="field"><textarea id="accNeed" rows="2" placeholder="Or describe your needs in your own words…"></textarea></div>
+          <div class="field">
+            <label for="accNeed" class="sr-only">Describe accessibility needs</label>
+            <textarea id="accNeed" rows="2" placeholder="Or describe your needs in your own words…"></textarea>
+          </div>
           <button class="btn primary" id="accGo">Build my accessibility plan</button>
           <div id="accBody" style="margin-top:16px"></div>
         </div>
         <div class="card">
-          <h3>Request a volunteer</h3><p class="sub">A trained mobility volunteer can meet you</p>
+          <h2>Request a volunteer</h2><p class="sub">A trained mobility volunteer can meet you</p>
           <div class="list">
             <div class="row"><div class="r-ico">📍</div><div class="r-main"><div class="r-title">Meet at Gate ACC</div><div class="r-sub">Avg response ~4 min</div></div></div>
             <div class="row"><div class="r-ico">🧑‍🦽</div><div class="r-main"><div class="r-title">2 volunteers roaming</div><div class="r-sub">SW concourse now</div></div></div>
@@ -391,7 +456,7 @@ const VIEWS = (() => {
       root.querySelector('#volBtn').addEventListener('click',()=>ctx.toast('🔔 Volunteer notified — meet at Gate ACC (~4 min).'));
     }};
   }
-  function accCard(i,t,s,f){ return `<div class="card"><div style="font-size:24px;margin-bottom:8px">${i}</div><h3>${t}</h3><p class="sub" style="margin-bottom:8px">${s}</p><span class="badge ok"><span class="d"></span>${f}</span></div>`; }
+  function accCard(i,t,s,f){ return `<div class="card"><div style="font-size:24px;margin-bottom:8px">${i}</div><h2>${t}</h2><p class="sub" style="margin-bottom:8px">${s}</p><span class="badge ok"><span class="d"></span>${f}</span></div>`; }
 
   /* =========================================================
      SUSTAINABILITY
@@ -412,13 +477,13 @@ const VIEWS = (() => {
       </div>
       <div class="grid g-main">
         <div class="card">
-          <h3>✦ AI impact recommendations</h3><p class="sub">Highest-leverage actions for this match</p>
+          <h2>✦ AI impact recommendations</h2><p class="sub">Highest-leverage actions for this match</p>
           <div class="list" id="susList">${s.tips.map(t=>`<div class="row"><div class="r-ico">🌱</div><div class="r-main"><div class="r-title" style="font-weight:500;white-space:normal">${esc(t)}</div></div></div>`).join('')}</div>
           <button class="btn primary sm" id="susBtn" style="margin-top:14px">Generate today's action plan</button>
           <div id="susBody" style="margin-top:14px"></div>
         </div>
         <div class="card">
-          <h3>Fan carbon saved</h3><p class="sub">vs all-car baseline</p>
+          <h2>Fan carbon saved</h2><p class="sub">vs all-car baseline</p>
           <div style="display:grid;place-items:center;padding:10px 0">
             <div class="donut" style="--p:${s.transit}"><b>${s.transit}%</b></div>
             <p style="text-align:center;color:var(--txt-dim);font-size:13px;margin:14px 0 0">${s.transit}% of fans chose low-carbon transit today, avoiding an estimated <b style="color:var(--brand)">36 t CO₂</b>.</p>
@@ -448,11 +513,11 @@ const VIEWS = (() => {
       </div>
       <div class="grid g-2">
         <div class="card">
-          <h3>Generative AI engine</h3><p class="sub">Bring your own Anthropic API key for live Claude responses</p>
-          <div class="field"><label>Anthropic API key</label>
-            <input id="apiKey" type="password" placeholder="sk-ant-…" value="${AI.getKey()?'••••••••••••':''}"/>
+          <h2>Generative AI engine</h2><p class="sub">Bring your own Anthropic API key for live Claude responses</p>
+          <div class="field"><label for="apiKey">Anthropic API key</label>
+            <input id="apiKey" type="password" placeholder="sk-ant-…" value="${AI.getKey()?esc('••••••••••••'):''}"/>
             <div class="hint">Stored only in this browser (localStorage). Calls go directly to Anthropic. Leave blank to use the on-device simulated assistant.</div></div>
-          <div class="field"><label>Model</label>
+          <div class="field"><label for="model">Model</label>
             <select id="model">
               <option value="claude-haiku-4-5"${AI.getModel()==='claude-haiku-4-5'?' selected':''}>claude-haiku-4-5 · fastest</option>
               <option value="claude-sonnet-4-6"${AI.getModel()==='claude-sonnet-4-6'?' selected':''}>claude-sonnet-4-6 · balanced</option>
@@ -465,7 +530,7 @@ const VIEWS = (() => {
           <div style="margin-top:14px"><span class="badge ${live?'ok':'warn'}" id="modeBadge"><span class="d"></span>${live?'Live AI connected':'Simulated AI (offline)'}</span></div>
         </div>
         <div class="card">
-          <h3>About Kickoff'26</h3>
+          <h2>About Kickoff'26</h2>
           <p class="sub" style="margin-bottom:14px">GenAI Stadium Intelligence for the FIFA World Cup 2026</p>
           <div class="list">
             <div class="row"><div class="r-ico">✦</div><div class="r-main"><div class="r-title">Generative AI everywhere</div><div class="r-sub">Concierge, routing, briefings, broadcasts & sustainability plans</div></div></div>

@@ -103,3 +103,6 @@ const DB = (() => {
 
   return { VENUES, ZONE_LAYOUT, GATES, AMENITIES, TRANSPORT, SUSTAIN, ALERTS, CROWD_HISTORY, seededOcc };
 })();
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = DB;
+}

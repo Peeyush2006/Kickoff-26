@@ -97,3 +97,6 @@ const Anim = (() => {
 
   return { animateView, reduce };
 })();
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = Anim;
+}

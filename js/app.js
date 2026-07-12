@@ -12,12 +12,17 @@
   const viewEl = $('#view');
 
   /* ---- context passed to views ---- */
+  const teardowns = [];
   const ctx = {
-    toast, go, refreshAIStatus,
+    toast, go, refreshAIStatus, live: Live,
+    onLeave(fn){ teardowns.push(fn); },
   };
 
   /* ---- routing ---- */
   function go(name){
+    // tear down previous view's live hooks
+    while (teardowns.length){ try { teardowns.pop()(); } catch(e){} }
+    Live.clear();
     state.view = name;
     document.querySelectorAll('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.view === name));
     const factory = VIEWS[name] || VIEWS.dashboard;
@@ -25,7 +30,7 @@
     viewEl.innerHTML = html;
     viewEl.focus();
     if (mount) mount(viewEl, ctx);
-    if (window.Anim) Anim.animateView(viewEl);
+    if (typeof Anim !== 'undefined') Anim.animateView(viewEl);
     closeSidebar();
     // reflect rtl for arabic in concierge
     document.documentElement.dir = (state.lang === 'ar' && name === 'concierge') ? 'rtl' : 'ltr';
@@ -38,6 +43,7 @@
     sel.value = state.venue.id;
     sel.addEventListener('change', () => {
       state.venue = DB.VENUES.find(v => v.id === sel.value);
+      Live.configure(state.venue);
       updateMatchChip();
       go(state.view);
       toast(`Switched to ${state.venue.name}`);
@@ -97,6 +103,7 @@
     buildLangs();
     updateMatchChip();
     refreshAIStatus();
+    Live.configure(state.venue);
     tick(); setInterval(tick, 1000);
 
     document.querySelectorAll('.nav-item').forEach(b => b.addEventListener('click', () => go(b.dataset.view)));

@@ -40,3 +40,6 @@ const I18N = (() => {
 
   return { LANGS, langMeta, tr };
 })();
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = I18N;
+}
