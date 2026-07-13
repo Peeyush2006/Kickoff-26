@@ -236,7 +236,7 @@ body {
 
 .table{width:100%;border-collapse:collapse;font-size:13px;}
 .table th{text-align:left;color:var(--txt-mut);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.06em;padding:8px 10px;border-bottom:1px solid var(--stroke);}
-.table td{padding:11px 10px;border-bottom:1px solid var(--line);border-bottom:1px solid #1c2838;}
+.table td{padding:11px 10px;border-bottom:1px solid var(--line);}
 .table tr:hover td{background:var(--bg-2);}
 
 .alert{display:flex;gap:12px;padding:13px 14px;border-radius:12px;border:1px solid var(--stroke);background:var(--bg-2);border-left:3px solid var(--txt-mut);}
@@ -386,3 +386,9 @@ body {
 @media(max-width:720px){.live-strip{flex-wrap:wrap;gap:14px;}.ls-sep{display:none;}.ls-num{font-size:24px;}}
 #gateCanvas{border-radius:12px;background:radial-gradient(120% 80% at 50% 100%,rgba(18,214,160,.05),transparent 60%),#0a1410;
   border:1px solid var(--stroke);}
+
+/* ---------- Accessibility & Utility Helpers ---------- */
+.flex-col{display:flex;flex-direction:column;gap:16px;}
+.w-full{width:100%;}
+.skip-link{position:absolute;top:-45px;left:10px;background:var(--brand);color:#08100e;padding:10px 16px;z-index:9999;transition:top .2s;font-weight:700;border-radius:0 0 8px 8px;text-decoration:none;box-shadow:0 4px 12px rgba(0,0,0,.5);font-family:var(--display);font-size:13px;}
+.skip-link:focus{top:0;}

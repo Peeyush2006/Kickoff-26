@@ -2,6 +2,7 @@ const DB = require('../js/data.js');
 const I18N = require('../js/i18n.js');
 const AI = require('../js/ai.js');
 const Live = require('../js/live.js');
+const Utils = require('../js/utils.js');
 
 describe('Kickoff26 Unit Tests', () => {
 
@@ -31,6 +32,24 @@ describe('Kickoff26 Unit Tests', () => {
     });
   });
 
+  describe('Utils (utils.js)', () => {
+    test('should escape double and single quotes and html tags', () => {
+      expect(Utils.esc('<script>alert("hello")</script>')).toBe('&lt;script&gt;alert(&quot;hello&quot;)&lt;/script&gt;');
+      expect(Utils.esc("owner's seat")).toBe('owner&#39;s seat');
+      expect(Utils.esc(null)).toBe('');
+    });
+
+    test('should sanitize inputs by removing angle brackets', () => {
+      expect(Utils.sanitizeInput('<test>')).toBe('test');
+      expect(Utils.sanitizeInput(null)).toBe('');
+    });
+
+    test('should format percentages', () => {
+      expect(Utils.pct(0.785)).toBe(79);
+      expect(Utils.pct(0)).toBe(0);
+    });
+  });
+
   describe('I18N (i18n.js)', () => {
     test('should support multiple languages', () => {
       expect(I18N.LANGS).toBeDefined();
@@ -49,6 +68,14 @@ describe('Kickoff26 Unit Tests', () => {
       expect(enTr.welcome).toContain('concierge');
       expect(esTr.welcome).toContain('conserje');
     });
+
+    test('should fallback to default language when invalid code is provided', () => {
+      const invalidTr = I18N.tr('xyz');
+      expect(invalidTr.welcome).toBe(I18N.tr('en').welcome);
+
+      const invalidMeta = I18N.langMeta('xyz');
+      expect(invalidMeta.code).toBe('en');
+    });
   });
 
   describe('AI (ai.js)', () => {
@@ -56,6 +83,19 @@ describe('Kickoff26 Unit Tests', () => {
       expect(AI.isLive()).toBe(false);
       expect(AI.getKey()).toBe('');
       expect(AI.getModel()).toBe('claude-haiku-4-5');
+    });
+
+    test('should classify intents correctly using scoring rules', () => {
+      expect(AI.classify('where is my seat?')).toBe('seat');
+      expect(AI.classify('where can I get food?')).toBe('food');
+      expect(AI.classify('want to recycle carbon water bottle')).toBe('sustain');
+      expect(AI.classify('show my ticket entry QR code')).toBe('ticket');
+      expect(AI.classify('wheelchair accessible sensory calm room')).toBe('access');
+      expect(AI.classify('shift briefing duty-manager')).toBe('briefing');
+      expect(AI.classify('balancing plan mitigation')).toBe('mitigation');
+      expect(AI.classify('sustainability plan for ops')).toBe('susPlan');
+      // Scoring override check: "fastest way home" should match transport, not seat
+      expect(AI.classify('fastest way home')).toBe('transport');
     });
 
     test('should correctly build context grounding', () => {

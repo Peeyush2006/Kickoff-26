@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Kickoff'26 — GenAI Stadium Intelligence & Fan Experience Platform for FIFA World Cup 2026" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://api.anthropic.com; img-src 'self' data: https:; child-src 'none'; object-src 'none';" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://api.anthropic.com; img-src 'self' data: https:; child-src 'none'; object-src 'none';" />
   <title>Kickoff'26 · Stadium Intelligence</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
+  <a href="#view" class="skip-link">Skip to content</a>
   <!-- ======================= APP SHELL ======================= -->
   <div id="app">
 
@@ -29,29 +30,29 @@
 
       <nav class="nav" id="nav" aria-label="Primary">
         <button class="nav-item" data-view="dashboard">
-          <span class="ni-ico">▚</span><span>Command Center</span>
+          <span class="ni-ico" aria-hidden="true">▚</span><span>Command Center</span>
         </button>
         <button class="nav-item" data-view="concierge">
-          <span class="ni-ico">✦</span><span>AI Concierge</span><span class="ni-tag">GenAI</span>
+          <span class="ni-ico" aria-hidden="true">✦</span><span>AI Concierge</span><span class="ni-tag">GenAI</span>
         </button>
         <button class="nav-item" data-view="navigation">
-          <span class="ni-ico">➤</span><span>Wayfinding</span>
+          <span class="ni-ico" aria-hidden="true">➤</span><span>Wayfinding</span>
         </button>
         <button class="nav-item" data-view="crowd">
-          <span class="ni-ico">◉</span><span>Crowd Flow</span>
+          <span class="ni-ico" aria-hidden="true">◉</span><span>Crowd Flow</span>
         </button>
         <button class="nav-item" data-view="transport">
-          <span class="ni-ico">⤳</span><span>Transport</span>
+          <span class="ni-ico" aria-hidden="true">⤳</span><span>Transport</span>
         </button>
         <button class="nav-item" data-view="access">
-          <span class="ni-ico">♿</span><span>Accessibility</span>
+          <span class="ni-ico" aria-hidden="true">♿</span><span>Accessibility</span>
         </button>
         <button class="nav-item" data-view="sustainability">
-          <span class="ni-ico">♲</span><span>Sustainability</span>
+          <span class="ni-ico" aria-hidden="true">♲</span><span>Sustainability</span>
         </button>
         <div class="nav-sep">Operations</div>
         <button class="nav-item" data-view="settings">
-          <span class="ni-ico">⚙</span><span>Settings & AI</span>
+          <span class="ni-ico" aria-hidden="true">⚙</span><span>Settings & AI</span>
         </button>
       </nav>
 
@@ -91,6 +92,7 @@
   <!-- Toast host -->
   <div id="toasts" class="toasts" aria-live="polite"></div>
 
+  <script src="js/utils.js"></script>
   <script src="js/data.js"></script>
   <script src="js/i18n.js"></script>
   <script src="js/ai.js"></script>

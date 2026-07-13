@@ -9,10 +9,7 @@
   };
 
   const $ = s => document.querySelector(s);
-  const esc = s => {
-    if (s === null || s === undefined) return '';
-    return String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
-  };
+  const esc = Utils.esc;
   const viewEl = $('#view');
 
   /* ---- context passed to views ---- */
@@ -28,7 +25,15 @@
     while (teardowns.length){ try { teardowns.pop()(); } catch(e){} }
     Live.clear();
     state.view = name;
-    document.querySelectorAll('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.view === name));
+    document.querySelectorAll('.nav-item').forEach(b => {
+      const isActive = b.dataset.view === name;
+      b.classList.toggle('active', isActive);
+      if (isActive) {
+        b.setAttribute('aria-current', 'page');
+      } else {
+        b.removeAttribute('aria-current');
+      }
+    });
     const factory = VIEWS[name] || VIEWS.dashboard;
     const { html, mount } = factory(state);
     viewEl.innerHTML = html;

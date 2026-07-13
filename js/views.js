@@ -5,15 +5,9 @@
 const VIEWS = (() => {
 
   /* ---------- shared helpers ---------- */
-  const esc = s => {
-    if (s === null || s === undefined) return '';
-    return String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
-  };
-  const sanitizeInput = s => {
-    if (s === null || s === undefined) return '';
-    return String(s).replace(/[<>]/g, '');
-  };
-  const pct = n => Math.round(n*100);
+  const esc = Utils.esc;
+  const sanitizeInput = Utils.sanitizeInput;
+  const pct = Utils.pct;
 
   function sparkline(data, w=180, h=36, color='var(--brand)'){
     const max=Math.max(...data), min=Math.min(...data), rng=(max-min)||1;
@@ -69,7 +63,7 @@ const VIEWS = (() => {
       <div class="grid g-main">
         <div class="card">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-            <div><h2>AI-prioritised operations feed</h2><p class="sub">Ranked by predicted impact · updated continuously</p></div>
+            <div><h3>AI-prioritised operations feed</h3><p class="sub">Ranked by predicted impact · updated continuously</p></div>
             <span class="badge crit"><span class="d"></span>${critCount} needs action</span>
           </div>
           <div class="list" id="alertList">
@@ -77,16 +71,16 @@ const VIEWS = (() => {
           </div>
         </div>
 
-        <div style="display:flex;flex-direction:column;gap:16px">
+        <div class="flex-col">
           <div class="card">
-            <h2>Crowd trend</h2><p class="sub">% capacity · last 60 min</p>
+            <h3>Crowd trend</h3><p class="sub">% capacity · last 60 min</p>
             ${sparkline(DB.CROWD_HISTORY, 300, 70)}
             <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--txt-mut);margin-top:6px">
               <span>60m ago</span><span>Kickoff ${esc(v.ko)}</span></div>
           </div>
           <div class="card">
-            <h2>AI shift briefing</h2><p class="sub">One-tap summary for the duty manager</p>
-            <div id="briefBox" style="font-size:13.5px;color:var(--txt-dim);line-height:1.6;min-height:60px">
+            <h3>AI shift briefing</h3><p class="sub">One-tap summary for the duty manager</p>
+            <div id="briefBox" style="font-size:13.5px;color:var(--txt-dim);line-height:1.6;min-height:60px" aria-live="polite">
               Generate an AI-written briefing that fuses every live signal into a 20-second read.</div>
             <button class="btn primary sm" id="briefBtn" style="margin-top:12px">✦ Generate briefing</button>
           </div>
@@ -144,7 +138,7 @@ const VIEWS = (() => {
       </div>
       <div class="chat-wrap">
         <div class="card chat">
-          <div class="chat-log" id="chatLog"></div>
+          <div class="chat-log" id="chatLog" role="log" aria-live="polite" aria-relevant="additions"></div>
           <div class="suggest" id="suggest">
             ${t.prompts.map(p=>`<button class="chip">${esc(p)}</button>`).join('')}
           </div>
@@ -154,9 +148,9 @@ const VIEWS = (() => {
             <button class="btn primary" type="submit">Send</button>
           </form>
         </div>
-        <div style="display:flex;flex-direction:column;gap:16px">
+        <div class="flex-col">
           <div class="card">
-            <h2>Grounded on live data</h2><p class="sub">The assistant reasons over ↓</p>
+            <h3>Grounded on live data</h3><p class="sub">The assistant reasons over ↓</p>
             <div class="list">
               <div class="row"><div class="r-ico" aria-hidden="true">🏟️</div><div class="r-main"><div class="r-title">${esc(state.venue.name)}</div><div class="r-sub">${esc(state.venue.match)} · ${esc(state.venue.ko)} ${esc(state.venue.tz)}</div></div></div>
               <div class="row"><div class="r-ico" aria-hidden="true">👥</div><div class="r-main"><div class="r-title">${pct(state.venue.occ)}% occupancy</div><div class="r-sub">6 gates · live wait times</div></div></div>
@@ -165,7 +159,7 @@ const VIEWS = (() => {
             </div>
           </div>
           <div class="card" style="font-size:12.5px;color:var(--txt-dim)">
-            <h2>🌐 ${I18N.langMeta(state.lang).flag} ${I18N.langMeta(state.lang).name}</h2>
+            <h3>🌐 ${I18N.langMeta(state.lang).flag} ${I18N.langMeta(state.lang).name}</h3>
             <p class="sub" style="margin:0">Switch language in the top bar — the concierge replies in kind, ideal for international fans and volunteers.</p>
           </div>
         </div>
@@ -177,7 +171,8 @@ const VIEWS = (() => {
       root.querySelectorAll('#suggest .chip').forEach(c=>c.addEventListener('click',()=>{ input.value=c.textContent; root.querySelector('#chatForm').requestSubmit(); }));
       root.querySelector('#chatForm').addEventListener('submit', async e=>{
         e.preventDefault();
-        const q=sanitizeInput(input.value.trim()); if(!q) return;
+        let q=sanitizeInput(input.value.trim()); if(!q) return;
+        if(q.length > 500) q = q.slice(0, 500);
         input.value='';
         pushMsg(log,'me',esc(q));
         const th=pushMsg(log,'ai',typing());
@@ -195,15 +190,30 @@ const VIEWS = (() => {
   }
   const typing=()=>`<span class="typing"><i></i><i></i><i></i></span>`;
   function fmt(t){
-    // tiny markdown: **bold**, - bullets, line breaks
-    const lines=esc(t).split('\n'); let out=''; let inList=false;
+    // tiny markdown: **bold**, - bullets, numbered lists, line breaks
+    const lines=esc(t).split('\n'); let out=''; let listType=null;
     for(let ln of lines){
       ln=ln.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
-      if(/^\s*[-•]\s+/.test(ln)){ if(!inList){out+='<ul>';inList=true;} out+=`<li>${ln.replace(/^\s*[-•]\s+/,'')}</li>`; }
-      else if(/^\s*\d+\.\s+/.test(ln)){ if(!inList){out+='<ul>';inList=true;} out+=`<li>${ln.replace(/^\s*\d+\.\s+/,'')}</li>`; }
-      else { if(inList){out+='</ul>';inList=false;} if(ln.trim())out+=`<p>${ln}</p>`; }
+      if(/^\s*[-•]\s+/.test(ln)){
+        if(listType !== 'ul'){
+          if(listType){out+=`</${listType}>`;}
+          out+='<ul>';listType='ul';
+        }
+        out+=`<li>${ln.replace(/^\s*[-•]\s+/,'')}</li>`;
+      }
+      else if(/^\s*\d+\.\s+/.test(ln)){
+        if(listType !== 'ol'){
+          if(listType){out+=`</${listType}>`;}
+          out+='<ol>';listType='ol';
+        }
+        out+=`<li>${ln.replace(/^\s*\d+\.\s+/,'')}</li>`;
+      }
+      else {
+        if(listType){out+=`</${listType}>`;listType=null;}
+        if(ln.trim())out+=`<p>${ln}</p>`;
+      }
     }
-    if(inList)out+='</ul>'; return out;
+    if(listType)out+=`</${listType}>`; return out;
   }
 
   /* =========================================================
@@ -220,12 +230,12 @@ const VIEWS = (() => {
       <div class="grid g-main">
         <div class="card">
           <div style="display:flex;justify-content:space-between;align-items:center">
-            <h2>Interactive stadium map</h2>
+            <h3>Interactive stadium map</h3>
             <div class="seg" id="mapSeg">
-              <button class="on" data-f="all" aria-label="Show all amenities">All</button>
-              <button data-f="food" aria-label="Filter by food stands">🌮</button>
-              <button data-f="restroom" aria-label="Filter by restrooms">🚻</button>
-              <button data-f="access" aria-label="Filter by accessibility facilities">♿</button>
+              <button class="on" data-f="all" aria-label="Show all amenities" aria-pressed="true">All</button>
+              <button data-f="food" aria-label="Filter by food stands" aria-pressed="false">🌮</button>
+              <button data-f="restroom" aria-label="Filter by restrooms" aria-pressed="false">🚻</button>
+              <button data-f="access" aria-label="Filter by accessibility facilities" aria-pressed="false">♿</button>
             </div>
           </div>
           <p class="sub">Tap a stand for details · markers show key amenities</p>
@@ -236,18 +246,18 @@ const VIEWS = (() => {
             <span><i style="background:var(--crit)"></i> Congested</span>
           </div>
         </div>
-        <div style="display:flex;flex-direction:column;gap:16px">
+        <div class="flex-col">
           <div class="card">
-            <h2>✦ AI route planner</h2><p class="sub">Where do you want to go?</p>
+            <h3>✦ AI route planner</h3><p class="sub">Where do you want to go?</p>
             <div class="field"><label for="navFrom">From</label><select id="navFrom"><option>Gate A · North</option><option>Gate B · East</option><option>Gate C · South</option><option>Gate ACC · Accessible</option><option>Concourse 200</option></select></div>
             <div class="field"><label for="navTo">Destination</label><input id="navTo" placeholder="e.g. Seat 118, nearest halal food, first aid" value="Section 118" required maxlength="100"/></div>
             <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--txt-dim);margin-bottom:12px">
               <input type="checkbox" id="navStep"/>
               <label for="navStep">Step-free route only</label>
             </div>
-            <button class="btn primary" id="navGo" style="width:100%">Plan my route</button>
+            <button class="btn primary w-full" id="navGo">Plan my route</button>
           </div>
-          <div class="card" id="routeCard" style="display:none"><h2>Your route</h2><div id="routeBody"></div></div>
+          <div class="card" id="routeCard" style="display:none"><h3>Your route</h3><div id="routeBody" aria-live="polite"></div></div>
         </div>
       </div>`;
     return { html, mount(root, ctx){
@@ -262,7 +272,12 @@ const VIEWS = (() => {
           el.style.animationDelay=(i*45)+'ms';
           if(load>=0.9) el.style.animation='reveal .5s ease backwards, zpulse 2.4s ease-in-out 1s infinite';
           el.innerHTML=`<div>${z.id}</div><div class="z-lvl">${pct(load)}%</div>`;
-          el.addEventListener('click',()=>ctx.toast(`${z.label}: ${pct(load)}% full · ${load>=0.9?'consider another stand':'space available'}`));
+          el.tabIndex = 0;
+          el.setAttribute('role', 'button');
+          el.setAttribute('aria-label', `${z.label}: ${pct(load)}% full`);
+          const actZone = () => ctx.toast(`${z.label}: ${pct(load)}% full · ${load>=0.9?'consider another stand':'space available'}`);
+          el.addEventListener('click', actZone);
+          el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); actZone(); } });
           stadium.appendChild(el);
         });
         DB.AMENITIES.forEach(a=>{
@@ -272,16 +287,29 @@ const VIEWS = (() => {
           const m=document.createElement('div'); m.className='amark';
           m.style.cssText=`position:absolute;top:${z.top+z.h/2}%;left:${z.left+z.w/2}%;transform:translate(-50%,-50%);z-index:4;font-size:17px;cursor:pointer;filter:drop-shadow(0 2px 4px #000)`;
           m.textContent=a.ico; m.title=`${a.label} — ${a.note}`;
-          m.addEventListener('click',()=>ctx.toast(`${a.ico} ${a.label} — ${a.note}`));
+          m.tabIndex = 0;
+          m.setAttribute('role', 'button');
+          m.setAttribute('aria-label', `${a.label}: ${a.note}`);
+          const actMark = () => ctx.toast(`${a.ico} ${a.label} — ${a.note}`);
+          m.addEventListener('click', actMark);
+          m.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); actMark(); } });
           stadium.appendChild(m);
         });
       }
       paintZones();
       root.querySelectorAll('#mapSeg button').forEach(b=>b.addEventListener('click',()=>{
-        root.querySelectorAll('#mapSeg button').forEach(x=>x.classList.remove('on')); b.classList.add('on'); paintZones(b.dataset.f);
+        root.querySelectorAll('#mapSeg button').forEach(x=>{
+          x.classList.remove('on');
+          x.setAttribute('aria-pressed', 'false');
+        });
+        b.classList.add('on');
+        b.setAttribute('aria-pressed', 'true');
+        paintZones(b.dataset.f);
       }));
       root.querySelector('#navGo').addEventListener('click', async ()=>{
-        const from=root.querySelector('#navFrom').value, to=sanitizeInput(root.querySelector('#navTo').value.trim())||'your seat';
+        const from=root.querySelector('#navFrom').value;
+        let to=sanitizeInput(root.querySelector('#navTo').value.trim())||'your seat';
+        if(to.length > 200) to = to.slice(0, 200);
         const step=root.querySelector('#navStep').checked;
         const card=root.querySelector('#routeCard'), body=root.querySelector('#routeBody');
         card.style.display=''; body.innerHTML=`<div style="padding:8px 0">${typing()}</div>`;
@@ -318,7 +346,7 @@ const VIEWS = (() => {
       </div>
       <div class="card" style="margin-bottom:16px">
         <div style="display:flex;justify-content:space-between;align-items:center">
-          <div><h2>Live gate flow</h2><p class="sub">Each dot is a fan entering · lanes slow & queue when a gate is congested</p></div>
+          <div><h3>Live gate flow</h3><p class="sub">Each dot is a fan entering · lanes slow & queue when a gate is congested</p></div>
           <span class="badge ok"><span class="d"></span>Streaming</span>
         </div>
         <canvas id="gateCanvas" style="width:100%;height:240px;display:block;margin-top:8px"></canvas>
@@ -330,17 +358,17 @@ const VIEWS = (() => {
       </div>
       <div class="grid g-main">
         <div class="card">
-          <h2>Gate throughput</h2><p class="sub">Flow vs capacity · wait time · AI status</p>
+          <h3>Gate throughput</h3><p class="sub">Flow vs capacity · wait time · AI status</p>
           <table class="table"><thead><tr><th>Gate</th><th>Flow / cap</th><th>Wait</th><th>Load</th><th></th></tr></thead>
           <tbody id="gateTableBody">${DB.GATES.map(gateRow).join('')}</tbody></table>
         </div>
         <div class="card">
-          <h2>✦ AI crowd action</h2><p class="sub">Recommended intervention</p>
+          <h3>✦ AI crowd action</h3><p class="sub">Recommended intervention</p>
           <div class="alert crit" style="margin-bottom:12px"><div class="a-ico">🚨</div><div class="a-body">
             <div class="a-title">Gate B over capacity</div>
             <div class="a-desc">111% flow, 14-min wait, 38 min to kickoff.</div></div></div>
-          <div id="crowdRec" style="font-size:13.5px;color:var(--txt-dim);line-height:1.6;min-height:40px">Ask the AI to draft a balancing plan and a multilingual fan broadcast.</div>
-          <button class="btn primary sm" id="crowdBtn" style="margin-top:12px;width:100%">Generate mitigation + broadcast</button>
+          <div id="crowdRec" style="font-size:13.5px;color:var(--txt-dim);line-height:1.6;min-height:40px" aria-live="polite">Ask the AI to draft a balancing plan and a multilingual fan broadcast.</div>
+          <button class="btn primary sm w-full" id="crowdBtn" style="margin-top:12px">Generate mitigation + broadcast</button>
         </div>
       </div>`;
     return { html, mount(root, ctx){
@@ -384,22 +412,24 @@ const VIEWS = (() => {
       </div>
       <div class="grid g-2">
         <div class="card">
-          <h2>Options right now</h2><p class="sub">Ranked by AI for comfort + sustainability</p>
+          <h3>Options right now</h3><p class="sub">Ranked by AI for comfort + sustainability</p>
           <div class="list">${DB.TRANSPORT.map(transRow).join('')}</div>
         </div>
-        <div style="display:flex;flex-direction:column;gap:16px">
+        <div class="flex-col">
           <div class="card">
-            <h2>✦ Plan my journey home</h2><p class="sub">We factor in the post-match surge</p>
+            <h3>✦ Plan my journey home</h3><p class="sub">We factor in the post-match surge</p>
             <div class="field"><label for="trTo">Destination</label><input id="trTo" placeholder="e.g. Downtown, Airport, Hotel district" value="Downtown" required maxlength="100"/></div>
             <div class="field"><label for="trPri">Priority</label><select id="trPri"><option>Fastest</option><option>Least crowded</option><option>Greenest / lowest carbon</option><option>Wheelchair accessible</option></select></div>
-            <button class="btn primary" id="trGo" style="width:100%">Generate journey plan</button>
+            <button class="btn primary w-full" id="trGo">Generate journey plan</button>
           </div>
-          <div class="card" id="trCard" style="display:none"><h2>Your journey</h2><div id="trBody"></div></div>
+          <div class="card" id="trCard" style="display:none"><h3>Your journey</h3><div id="trBody" aria-live="polite"></div></div>
         </div>
       </div>`;
     return { html, mount(root, ctx){
       root.querySelector('#trGo').addEventListener('click', async ()=>{
-        const to=sanitizeInput(root.querySelector('#trTo').value.trim())||'downtown', pri=root.querySelector('#trPri').value;
+        let to=sanitizeInput(root.querySelector('#trTo').value.trim())||'downtown';
+        if(to.length > 200) to = to.slice(0, 200);
+        const pri=root.querySelector('#trPri').value;
         const card=root.querySelector('#trCard'), body=root.querySelector('#trBody');
         card.style.display=''; body.innerHTML=`<div style="padding:8px 0">${typing()}</div>`;
         const r=await AI.generate(`After ${v.match} at ${v.name}, plan the best journey to "${to}" optimising for: ${pri}. Account for post-match crowds and surge pricing. Give 3-4 steps with times and a carbon note.`, state);
@@ -435,7 +465,7 @@ const VIEWS = (() => {
       </div>
       <div class="grid g-main">
         <div class="card">
-          <h2>✦ Personalised assistance</h2><p class="sub">Tell us your needs — we'll tailor a plan and can alert a volunteer</p>
+          <h3>✦ Personalised assistance</h3><p class="sub">Tell us your needs — we'll tailor a plan and can alert a volunteer</p>
           <div class="chip-row" id="needChips" style="margin-bottom:14px">
             ${['Wheelchair user','Low vision','Deaf / hard of hearing','Autism / sensory','Ambulatory difficulty','Travelling with a child'].map(n=>`<button class="chip" data-n="${n}">${n}</button>`).join('')}
           </div>
@@ -444,22 +474,23 @@ const VIEWS = (() => {
             <textarea id="accNeed" rows="2" placeholder="Or describe your needs in your own words…" maxlength="500"></textarea>
           </div>
           <button class="btn primary" id="accGo">Build my accessibility plan</button>
-          <div id="accBody" style="margin-top:16px"></div>
+          <div id="accBody" style="margin-top:16px" aria-live="polite"></div>
         </div>
         <div class="card">
-          <h2>Request a volunteer</h2><p class="sub">A trained mobility volunteer can meet you</p>
+          <h3>Request a volunteer</h3><p class="sub">A trained mobility volunteer can meet you</p>
           <div class="list">
             <div class="row"><div class="r-ico" aria-hidden="true">📍</div><div class="r-main"><div class="r-title">Meet at Gate ACC</div><div class="r-sub">Avg response ~4 min</div></div></div>
             <div class="row"><div class="r-ico" aria-hidden="true">🧑‍🦽</div><div class="r-main"><div class="r-title">2 volunteers roaming</div><div class="r-sub">SW concourse now</div></div></div>
           </div>
-          <button class="btn" id="volBtn" style="width:100%;margin-top:12px">🔔 Request assistance</button>
+          <button class="btn w-full" id="volBtn" style="margin-top:12px">🔔 Request assistance</button>
         </div>
       </div>`;
     return { html, mount(root, ctx){
       const ta=root.querySelector('#accNeed');
       root.querySelectorAll('#needChips .chip').forEach(c=>c.addEventListener('click',()=>{ ta.value=(ta.value?ta.value+', ':'')+c.dataset.n; }));
       root.querySelector('#accGo').addEventListener('click', async ()=>{
-        const need=sanitizeInput(ta.value.trim())||'a wheelchair user attending with family';
+        let need=sanitizeInput(ta.value.trim())||'a wheelchair user attending with family';
+        if(need.length > 500) need = need.slice(0, 500);
         const box=root.querySelector('#accBody'); box.innerHTML=typing();
         const r=await AI.ask(`I need an accessibility plan. My needs: ${need}. Give specific step-free routing, best gate, relevant facilities and any sensory/support services, warmly.`, state);
         box.innerHTML=`<div class="alert ok"><div class="a-ico" aria-hidden="true">✅</div><div class="a-body">${fmt(r.text)}</div></div>`;
@@ -468,7 +499,7 @@ const VIEWS = (() => {
       root.querySelector('#volBtn').addEventListener('click',()=>ctx.toast('🔔 Volunteer notified — meet at Gate ACC (~4 min).'));
     }};
   }
-  function accCard(i,t,s,f){ return `<div class="card"><div style="font-size:24px;margin-bottom:8px" aria-hidden="true">${i}</div><h2>${t}</h2><p class="sub" style="margin-bottom:8px">${s}</p><span class="badge ok"><span class="d"></span>${f}</span></div>`; }
+  function accCard(i,t,s,f){ return `<div class="card"><div style="font-size:24px;margin-bottom:8px" aria-hidden="true">${i}</div><h3>${t}</h3><p class="sub" style="margin-bottom:8px">${s}</p><span class="badge ok"><span class="d"></span>${f}</span></div>`; }
 
   /* =========================================================
      SUSTAINABILITY
@@ -489,15 +520,15 @@ const VIEWS = (() => {
       </div>
       <div class="grid g-main">
         <div class="card">
-          <h2>✦ AI impact recommendations</h2><p class="sub">Highest-leverage actions for this match</p>
+          <h3>✦ AI impact recommendations</h3><p class="sub">Highest-leverage actions for this match</p>
           <div class="list" id="susList">${s.tips.map(t=>`<div class="row"><div class="r-ico" aria-hidden="true">🌱</div><div class="r-main"><div class="r-title" style="font-weight:500;white-space:normal">${esc(t)}</div></div></div>`).join('')}</div>
           <button class="btn primary sm" id="susBtn" style="margin-top:14px">Generate today's action plan</button>
-          <div id="susBody" style="margin-top:14px"></div>
+          <div id="susBody" style="margin-top:14px" aria-live="polite"></div>
         </div>
         <div class="card">
-          <h2>Fan carbon saved</h2><p class="sub">vs all-car baseline</p>
+          <h3>Fan carbon saved</h3><p class="sub">vs all-car baseline</p>
           <div style="display:grid;place-items:center;padding:10px 0">
-            <div class="donut" style="--p:${s.transit}"><b>${s.transit}%</b></div>
+            <div class="donut" style="--p:${s.transit}" role="img" aria-label="Donut chart showing ${s.transit}% of fans arrived via low-carbon transit."><b>${s.transit}%</b></div>
             <p style="text-align:center;color:var(--txt-dim);font-size:13px;margin:14px 0 0">${s.transit}% of fans chose low-carbon transit today, avoiding an estimated <b style="color:var(--brand)">36 t CO₂</b>.</p>
           </div>
         </div>
@@ -525,7 +556,7 @@ const VIEWS = (() => {
       </div>
       <div class="grid g-2">
         <div class="card">
-          <h2>Generative AI engine</h2><p class="sub">Bring your own Anthropic API key for live Claude responses</p>
+          <h3>Generative AI engine</h3><p class="sub">Bring your own Anthropic API key for live Claude responses</p>
           <div class="field"><label for="apiKey">Anthropic API key</label>
             <input id="apiKey" type="password" placeholder="sk-ant-…" value="${AI.getKey()?esc('••••••••••••'):''}" maxlength="100"/>
             <div class="hint">Stored only in this browser (localStorage). Calls go directly to Anthropic. Leave blank to use the on-device simulated assistant.</div></div>
@@ -542,7 +573,7 @@ const VIEWS = (() => {
           <div style="margin-top:14px"><span class="badge ${live?'ok':'warn'}" id="modeBadge"><span class="d"></span>${live?'Live AI connected':'Simulated AI (offline)'}</span></div>
         </div>
         <div class="card">
-          <h2>About Kickoff'26</h2>
+          <h3>About Kickoff'26</h3>
           <p class="sub" style="margin-bottom:14px">GenAI Stadium Intelligence for the FIFA World Cup 2026</p>
           <div class="list">
             <div class="row"><div class="r-ico" aria-hidden="true">✦</div><div class="r-main"><div class="r-title">Generative AI everywhere</div><div class="r-sub">Concierge, routing, briefings, broadcasts & sustainability plans</div></div></div>
@@ -556,8 +587,8 @@ const VIEWS = (() => {
       root.querySelector('#saveKey').addEventListener('click',()=>{
         const k=root.querySelector('#apiKey').value.trim();
         if(k && !k.startsWith('•')) {
-          if (!k.startsWith('sk-ant-') || k.length < 40) {
-            ctx.toast('❌ Invalid key. Must start with sk-ant-');
+          if (!k.startsWith('sk-ant-') || k.length < 40 || k.length > 200) {
+            ctx.toast('❌ Invalid key. Must start with sk-ant- and be valid length');
             return;
           }
           AI.setKey(k);

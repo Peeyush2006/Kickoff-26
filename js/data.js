@@ -99,9 +99,7 @@ const DB = (() => {
 
   const CROWD_HISTORY = [42,48,51,55,60,63,71,74,80,86,88,91]; // % over time
 
-  const seededOcc = (v) => v.occ;
-
-  return { VENUES, ZONE_LAYOUT, GATES, AMENITIES, TRANSPORT, SUSTAIN, ALERTS, CROWD_HISTORY, seededOcc };
+  return { VENUES, ZONE_LAYOUT, GATES, AMENITIES, TRANSPORT, SUSTAIN, ALERTS, CROWD_HISTORY };
 })();
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = DB;
